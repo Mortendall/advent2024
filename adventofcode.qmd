@@ -1,0 +1,48 @@
+```{r}
+library(tidyverse)
+library(here)
+library(vroom)
+```
+
+
+```{r}
+#Dec01
+#find out the total difference between two columns from input
+
+dec01 <- vroom(here("data-raw/01dec.txt"),col_names = F
+                ) |> 
+    select(X1, X4)
+X1_sorted <- dec01 |> 
+    select(X1) |> 
+    arrange(X1) 
+
+X4_sorted <- dec01 |> 
+    select(X4) |> 
+    arrange(X4) 
+
+dec01_mod <- data_frame("X1" = X1_sorted,
+                        "X2" = X4_sorted) |> 
+    mutate(difference = abs(X1-X2)) 
+
+dif_sum <- dec01_mod|> 
+    summarise(sum = sum(difference))
+
+#result is 	1666427
+
+#calculate similarity score between columns
+
+result_table <- data.frame(X1 = X1_sorted,
+                           similarity = NA)
+
+for (i in 1:length(X1_sorted$X1)){
+    match_x2 <- X4_sorted |> 
+        filter(X4 == result_table$X1[i])
+    result_table$similarity[i] <- length(match_x2$X4)*result_table$X1[i]
+    
+}
+
+result_part2 <- sum(result_table$similarity)
+#answer is 24316233
+
+```
+
