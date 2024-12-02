@@ -45,4 +45,90 @@ result_part2 <- sum(result_table$similarity)
 #answer is 24316233
 
 ```
+```{r}
+dec02 <- vroom(here("data-raw/02dec.txt"),
+               col_names = F,delim = ",")
+
+dec02_split <- dec02 |> 
+    mutate(vectors = str_split(X1, " "),
+           result = NA)
+
+check_vector <- function(input_vector){
+    result_table <- as.data.frame(matrix(nrow = (length(input_vector)-1)))
+    colnames(result_table)<- "result"
+    for (i in 1:(length(input_vector)-1)){
+        if(as.numeric(input_vector[i])>as.numeric(input_vector[i+1])){
+            difference <- as.numeric(input_vector[i])-as.numeric(input_vector[i+1])
+            
+            if(difference < 4){
+                result_table$result[i]<- "decreasing"
+            }
+            else{
+               result_table$result[i]<- "violation" 
+            }
+            
+        }
+        else if(as.numeric(input_vector[i])<as.numeric(input_vector[i+1])){
+            difference <- as.numeric(input_vector[i+1])-as.numeric(input_vector[i])
+            
+            if(difference<4){
+                result_table$result[i]<- "increasing"
+            }
+            else{
+               result_table$result[i]<- "violation" 
+            }
+            
+        } 
+        else{
+            result_table$result[i]<- "violation"
+        }
+    }
+     if(all(result_table$result=="increasing")){
+         return("safe")
+     }
+     else if(all(result_table$result=="decreasing")){
+         return("safe")
+     }
+     else{
+         return("unsafe")
+     }
+}
+
+for (i in 1:length(dec02_split$vectors)){
+    dec02_split$result[i]<- check_vector(dec02_split$vectors[[i]])
+}
+
+dec02_split |> count(result)
+#result is 359
+
+unsafe_reports <- dec02_split |> 
+    filter(result == "unsafe")
+
+###part two - remove 1 level that is a violation
+
+problem_dampener <- function(input_vector){
+    dampened <- 0
+    for(i in(1:length(input_vector))){
+        
+        trimmed_result <- check_vector(input_vector[-i])
+        if(trimmed_result=="safe"){
+            dampened <- (dampened+1)
+        }
+    }
+    return(dampened)
+}
+
+
+unsafe_reports <- unsafe_reports |> 
+    mutate(dampened = NA)
+
+for (i in 1:length(unsafe_reports$vectors)){
+    unsafe_reports$dampened[i]<- problem_dampener(unsafe_reports$vectors[[i]])
+}
+    unsafe_reports |> filter(dampened!=0) |> count()
+
+    59+359
+    #answer is 418
+
+```
 
