@@ -131,4 +131,35 @@ for (i in 1:length(unsafe_reports$vectors)){
     #answer is 418
 
 ```
+```{r}
+#load in mul instructions 
+
+dec03 <- read_file(here("data-raw/03dec.txt"))
+#construct regex to get mul
+mul_instructions <- str_extract_all(dec03, pattern = "mul\\(\\d{1,3}\\,\\d{1,3}\\)")
+
+#split into individual strings and cast as dataframe
+
+mul_split <- tibble("mul_expression" = unlist(mul_instructions)) |> 
+    mutate(number1 = str_extract(mul_expression, "(?<=mul\\()\\d{1,3}"),
+           number2 = str_extract(mul_expression, "\\d{1,3}(?=\\))"),
+           mul_sum = as.numeric(number1)*as.numeric(number2))
+
+mul_split |> summarise(sum = sum(mul_sum))
+
+
+#part 2 - remove all between a don't and a do instruction
+
+dec03_mod <- str_remove_all(dec03, pattern = "[:space:]")
+mul_trimmed_pre <- str_remove_all(dec03_mod, pattern = "don\\'t\\(\\)*(.*?)do\\(\\)")
+mul_trimmed <-  str_extract_all(mul_trimmed_pre, pattern = "mul\\(\\d{1,3}\\,\\d{1,3}\\)")
+    
+mul_split_trimmed <- tibble("mul_expression" = unlist(mul_trimmed)) |> 
+    mutate(number1 = str_extract(mul_expression, "(?<=mul\\()\\d{1,3}"),
+           number2 = str_extract(mul_expression, "\\d{1,3}(?=\\))"),
+           mul_sum = as.numeric(number1)*as.numeric(number2))
+
+mul_split_trimmed |> summarise(sum = sum(mul_sum))
+
+```
 
