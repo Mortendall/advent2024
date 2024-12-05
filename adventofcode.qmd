@@ -163,3 +163,87 @@ mul_split_trimmed |> summarise(sum = sum(mul_sum))
 
 ```
 
+```{r}
+dec04 <- vroom(here("data-raw/dec04.txt"),delim = "\n",col_names = F)
+dec04_mod <- as.tibble(str_split_fixed(string = dec04$X1,pattern = "",n = 140))
+
+rotate_matrix <- function(target_matrix){
+    rotated_matrix <- t(apply(target_matrix,2,rev))
+    return(rotated_matrix)
+}
+
+find_xmas3 <- function(input_data) {
+    christmas_tally <- 0
+    for (i in 1:ncol(input_data)) {
+        for (j in 1:(ncol(input_data) - 3)) {
+            #horizontal forward
+            if (input_data[i, j] == "X" &
+                input_data[i, (j + 1)] == "M" &
+                input_data[i, (j + 2)] == "A" & input_data[i, (j + 3)] == "S") {
+                christmas_tally <- christmas_tally + 1
+            }
+            #horizontal backward
+            if (input_data[i, j] == "S" &
+                input_data[i, (j + 1)] == "A" &
+                input_data[i, (j + 2)] == "M" & input_data[i, (j + 3)] == "X") {
+                christmas_tally <- christmas_tally + 1
+            }
+        }
+    }
+    for (i in 1:(ncol(input_data)-3)) {
+        for (j in 1:(ncol(input_data) - 3)) {
+            {
+                #diagonal forward
+                if (input_data[i, j] == "X" &
+                    input_data[(i + 1), (j + 1)] == "M" &
+                    input_data[(i + 2), (j + 2)] == "A" & input_data[(i + 3), (j + 3)] == "S") {
+                    christmas_tally <- christmas_tally + 1
+                }
+                #diagonal backward
+                if (input_data[i, j] == "S" &
+                    input_data[(i + 1), (j + 1)] == "A" &
+                    input_data[(i + 2), (j + 2)] == "M" & input_data[(i + 3), (j + 3)] == "X") {
+                    christmas_tally <- christmas_tally + 1
+                }
+            }
+        }
+        
+    }
+    return(christmas_tally)
+}
+find_xmas3(dec04_mod)+find_xmas3(rotate_matrix(dec04_mod))
+
+#write function to recognize crossing of MAS
+
+mas_detector <- function(input_data){
+    christmas_tally <- 0
+    for (i in 1:(ncol(input_data) - 2)) {
+        for (j in 1:(ncol(input_data) - 2)) {
+            if (input_data[i, j] == "M" &
+                input_data[i + 1, j + 1] == "A" &
+                input_data[i + 2, j + 2] == "S" &
+                input_data[i + 2, j] == "M" & input_data[i, j + 2] == "S"
+            ){
+                christmas_tally <- christmas_tally + 1
+            }
+            if (input_data[i, j] == "S" &
+                input_data[i + 1, j + 1] == "A" &
+                input_data[i + 2, j + 2] == "M" &
+                input_data[i + 2, j] == "S" & input_data[i, j + 2] == "M"
+            ){
+                christmas_tally <- christmas_tally + 1
+            }
+        }
+    }
+    return(christmas_tally)
+}
+
+
+mas_detector(dec04_mod)+mas_detector(rotate_matrix(dec04_mod))
+
+
+```
+
+```{r}
+
+
