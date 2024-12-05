@@ -151,7 +151,7 @@ mul_split |> summarise(sum = sum(mul_sum))
 #part 2 - remove all between a don't and a do instruction
 
 dec03_mod <- str_remove_all(dec03, pattern = "[:space:]")
-mul_trimmed_pre <- str_remove_all(dec03_mod, pattern = "don\\'t\\(\\)*(.*?)do\\(\\)")
+mul_trimmed_pre <- str_remove_all(dec03_mod, pattern = "don\\'t\\(\\)(.*?)do\\(\\)")
 mul_trimmed <-  str_extract_all(mul_trimmed_pre, pattern = "mul\\(\\d{1,3}\\,\\d{1,3}\\)")
     
 mul_split_trimmed <- tibble("mul_expression" = unlist(mul_trimmed)) |> 
@@ -245,5 +245,121 @@ mas_detector(dec04_mod)+mas_detector(rotate_matrix(dec04_mod))
 ```
 
 ```{r}
+dec05_rules <- vroom(here("data-raw/05dec_A.txt"), delim =  "|",col_names = F)
+dec05_data <- vroom(here("data-raw/05dec_B.txt"), delim = ";", col_names = F,
+                    col_types = "c")
+
+dec05_rules_test <- vroom(here("data-raw/05dec_A_test.txt"), delim =  "|",col_names = F)
+dec05_data_test <- vroom(here("data-raw/05dec_B_test.txt"), delim = ";", col_names = F,
+                    col_types = "c")
+
+check_entry <- function(dataset,rules){
+    #split string into vector
+    data_vector <- unlist(str_split(dataset, ","))
+    for (i in 1:length(data_vector)){
+        target_number <- data_vector[i]
+        for(j in i:length(data_vector)){
+            neighbor_number <- data_vector[j]
+            rule <- rules |> 
+                filter(X1 == neighbor_number&X2 == target_number)
+            
+            if(length(rule$X1)!=0){
+                return("violation")
+            }
+        }
+    }
+    return("approved")
+}
+
+verdict <- unlist(map(dec05_data$X1, ~check_entry(.,dec05_rules)))
+
+dec05_result <- dec05_data |> 
+    mutate(verdict = verdict) |> 
+    filter(verdict == "approved") |> 
+    mutate(vector = str_split(X1, ",")
+        )
+        
+dec05_result$position <- map(dec05_result$vector,
+                           ~as.integer(length(unlist(.))/2)+1)
+dec05_result$middle <- map2(dec05_result$vector,
+                            dec05_result$position,
+                            ~unlist(.x)[.y])
+dec05_result |> summarise(sum = sum(as.numeric(middle)))
+
+#part 2
+#correct sequences
+
+correct_entry <-  function(data_vector,rules){
+    #split string into vector
+    for (i in 1:length(data_vector)){
+        target_number <- data_vector[i]
+        for(j in i:length(data_vector)){
+            neighbor_number <- data_vector[j]
+            rule <- rules |> 
+                filter(X1 == neighbor_number&X2 == target_number)
+            
+            if(length(rule$X1)!=0){
+                data_vector[j]<- target_number
+                data_vector[i]<- neighbor_number
+                return(data_vector)
+        }
+    }
+    return(data_vector)
+    }
+}
 
 
+dec05_subset <- dec05_data|> 
+    mutate(verdict = verdict) |> 
+    filter(verdict == "violation") |> 
+    mutate(vector = str_split(X1, ","))
+        
+dec05_subset$fixed <- dec05_subset$vector
+
+
+
+iterate_positions <- function(data_sheet, rules){
+    for(i in 1:40){
+    data_sheet$fixed <- map(data_sheet$fixed, ~correct_entry(., rules))
+    data_sheet$verdict <- map(data_sheet$fixed, ~check_entry(.,rules))
+    print(i)
+    }
+    beepr::beep(4)
+    return(data_sheet)
+}
+
+
+dec05_subset <- iterate_positions(dec05_subset,
+                                  dec05_rules)
+
+dec05_subset_approved <- dec05_subset |> 
+    filter(verdict == "approved")
+
+dec_subset_violation <- dec05_subset |> 
+    filter(verdict == "violation")
+dec_subset_violation <- iterate_positions(dec_subset_violation,
+                                  dec05_rules)
+dec05_subset_approved <- bind_rows(dec05_subset_approved,
+                                   subset(dec_subset_violation, verdict == "approved"))
+#after 40 iterations, some are still not done. Subset and run again
+dec_subset_violation <- subset(dec_subset_violation, verdict == "violation")
+dec_subset_violation <- iterate_positions(dec_subset_violation,
+                                  dec05_rules)
+#after 40 iterations, some are still not done. Subset and run again
+dec05_subset_approved <- bind_rows(dec05_subset_approved,
+                                   subset(dec_subset_violation, verdict == "approved"))
+dec_subset_violation <- subset(dec_subset_violation, verdict == "violation")
+dec_subset_violation <- iterate_positions(dec_subset_violation,
+                                  dec05_rules)
+
+dec05_subset_approved <- bind_rows(dec05_subset_approved,
+                                   dec_subset_violation)
+
+dec05_subset_approved$position <- map(dec05_subset_approved$fixed,
+                           ~as.integer(length(unlist(.))/2)+1)
+dec05_subset_approved$middle <- map2(dec05_subset_approved$fixed,
+                            dec05_subset_approved$position,
+                            ~unlist(.x)[.y])
+dec05_subset_approved  |> summarise(sum = sum(as.numeric(middle)))
+
+```
